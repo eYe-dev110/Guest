@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CustomerRole {
+  user
+  client
+  employeer
+}
+
+enum ImageType {
+  camera
+  face
+}
+
+model Role {
+  id         Int       @id @default(autoincrement())
+  name       String
+  users      User[]    @relation("RoleUsers")
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+
+  @@map("tb_role")
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  role_id    Int
+  role       Role     @relation(fields: [role_id], references: [id], name: "RoleUsers")
+  user_name  String   @unique @db.VarChar(10)
+  password   String   @db.VarChar(100)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@index([role_id], name: "tb_user_role_id_idx")
+  @@index([user_name], name: "tb_user_user_name_idx")
+  @@index([created_at], name: "tb_user_created_at_idx")
+  @@index([updated_at], name: "tb_user_updated_at_idx")
+  @@map("tb_user")
+}
+
+model Customer {
+  id           Int    @id @default(autoincrement())
+  role         CustomerRole  @default(user)
+  name         String
+  detail_info  String?
+  last_seen_at DateTime?
+  sessions     Session[]   @relation("CustomerSessions")
+  histories    History[]   @relation("CustomerHistories")
+  images       Image[]     @relation("CustomerImages")
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @default(now())
+
+  @@index([name], name: "tb_user_name_idx")
+  @@map("tb_customer")
+}
+
+model Session {
+  id            Int    @id @default(autoincrement())
+  customer_id   Int
+  customer      Customer  @relation(fields: [customer_id], references: [id], name: "CustomerSessions")
+  day_session   String
+  session_date  DateTime
+  created_at    DateTime  @default(now())
+
+  @@index([customer_id], name: "tb_session_customer_id_idx")
+  @@index([day_session], name: "tb_session_day_session_idx")
+  @@index([session_date], name: "tb_session_session_date_idx")
+  @@map("tb_session")
+}
+
+model Camera {
+  id             Int       @id @default(autoincrement())
+  title          String
+  sub_title      String
+  floor_num      Int
+  floor_sub_num  Int
+  histories      History[] @relation("CameraHistories")
+  images         Image[]   @relation("CameraImages")
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now())
+
+  @@index([title], name: "tb_camera_title_idx")
+  @@index([sub_title], name: "tb_camera_sub_title_idx")
+  @@index([floor_num], name: "tb_camera_floor_num_idx")
+  @@index([floor_sub_num], name: "tb_camera_floor_sub_num_idx")
+  @@map("tb_camera")
+}
+
+model History {
+  id          Int    @id @default(autoincrement())
+  customer_id Int
+  customer    Customer  @relation(fields: [customer_id], references: [id], name: "CustomerHistories")
+  camera_id   Int
+  camera      Camera    @relation(fields: [camera_id], references: [id], name: "CameraHistories")
+  seen_at     DateTime
+  images      Image[]   @relation("HistoryImages")
+  created_at  DateTime  @default(now())
+
+  @@index([customer_id], name: "tb_history_customer_id_idx")
+  @@index([camera_id], name: "tb_history_camera_id_idx")
+  @@index([seen_at], name: "tb_history_seen_at_idx")
+  @@map("tb_history")
+}
+
+model Image {
+  id           Int     @id @default(autoincrement())
+  customer_id  Int?
+  customer     Customer?   @relation(fields: [customer_id], references: [id], name: "CustomerImages")
+  camera_id    Int?
+  camera       Camera?     @relation(fields: [camera_id], references: [id], name: "CameraImages")
+  history_id   Int?
+  history      History?    @relation(fields: [history_id], references: [id], name: "HistoryImages")
+  image_type   ImageType  @default(camera)
+  url          String
+  created_at   DateTime   @default(now())
+
+  @@index([customer_id], name: "tb_image_customer_id_idx")
+  @@index([camera_id], name: "tb_image_camera_id_idx")
+  @@index([history_id], name: "tb_image_history_id_idx")
+  @@index([image_type], name: "tb_image_image_type_idx")
+  @@map("tb_image")
+}
+
+model Constant {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  value       String
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @default(now())
+
+  @@map("tb_constant")
+}
