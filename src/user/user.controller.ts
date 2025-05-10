@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Auth, GetUser } from 'src/auth/decorators';
 import { User } from './entities/user.entity';
 import { Role } from '@prisma/client';
@@ -34,13 +34,20 @@ export class UserController {
     summary: 'GET ALL USERS',
     description: 'Private endpoint to list all Users. It is allowed only by "admin" users.'
   })
+  @ApiQuery({ name: 'filter', required: false, description: 'Filter users by search fields' })
+  @ApiQuery({ name: 'current_page', required: false, type: Number, description: 'Page number (1-based)' })
+  @ApiQuery({ name: 'page_size', required: false, type: Number, description: 'Number of items per page' })
   @ApiResponse({status: 200, description: 'Ok', type: User, isArray: true})
   @ApiResponse({status: 401, description: 'Unauthorized'})
   @ApiResponse({status: 403, description: 'Forbidden' })
   @ApiResponse({status: 500, description: 'Server error'})             //Swagger
   // @Auth(Role.admin)
-  findAll() {
-    return this.userService.findAll();
+  findAll(
+    @Query('filter') filter?: string,
+    @Query('current_page') current_page = 1,
+    @Query('page_size') page_size = 10
+  ) {
+    return this.userService.findAll(filter, Number(current_page), Number(page_size));
   }
 
   @Get(':id')

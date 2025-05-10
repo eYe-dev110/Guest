@@ -6,7 +6,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { User } from './entities/user.entity';
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 
 
 @Injectable()
@@ -57,26 +57,65 @@ export class UserService {
     }
   }
 
-  async findAll() {
-    
+
+  async findAll(filter?: string, current_page = 1, page_size = 10) {
     try {
-      const users = await this.prisma.user.findMany({
-        select: {
-          id: true,
-          user_name: true,
-          role: true,
-          is_active: true,
-          created_at: true,
-          updated_at: true,
-        }
-      });
-      return users;
+      const skip = (current_page - 1) * page_size;
+  
+      const whereCondition: Prisma.UserWhereInput | undefined = filter
+        ? {
+            OR: [
+              {
+                user_name: {
+                  contains: filter,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                role: {
+                  name: {
+                    contains: filter,
+                    mode: 'insensitive' as const,
+                  },
+                },
+              },
+            ],
+          }
+        : undefined;
+  
+      const [users, total] = await this.prisma.$transaction([
+        this.prisma.user.findMany({
+          where: whereCondition,
+          skip,
+          take: page_size,
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            user_name: true,
+            role: true,
+            is_active: true,
+            created_at: true,
+            updated_at: true,
+          },
+        }),
+        this.prisma.user.count({ where: whereCondition }),
+      ]);
+  
+      return {
+        data: users,
+        meta: {
+          total,
+          current_page,
+          page_size,
+          total_pages: Math.ceil(total / page_size),
+        },
+      };
     } catch (error) {
       this.logger.error(`GET: error: ${error}`);
       throw new InternalServerErrorException('Server error');
     }
-        
   }
+  
 
   async findOne(field: string, value: string, user: User) {
         

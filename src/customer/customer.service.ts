@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { Customer } from './entities/customer.entity';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CustomerService {
@@ -24,10 +25,92 @@ export class CustomerService {
     }
   }
 
-  async findAll(): Promise<Customer[]> {
-    return this.prisma.customer.findMany();
-  }
-
+  async findAll(
+    filter?: string,
+    start_date?: string,
+    end_date?: string,
+    current_page = 1,
+    page_size = 10,
+  ) {
+    try {
+      const skip = (current_page - 1) * page_size;
+  
+      const orConditions: Prisma.CustomerWhereInput[] = [];
+  
+      if (filter) {
+        orConditions.push(
+          {
+            name: {
+              contains: filter,
+              mode: 'insensitive',
+            },
+          },
+          {
+            detail_info: {
+              contains: filter,
+              mode: 'insensitive',
+            },
+          }
+        );
+  
+        // Optional: add role filtering only if filter is an exact match
+        if (['user', 'admin', 'guest'].includes(filter.toLowerCase())) {
+          orConditions.push({
+            role: {
+              equals: filter.toLowerCase() as any, // Cast to enum if needed
+            },
+          });
+        }
+      }
+  
+      const whereCondition: Prisma.CustomerWhereInput = {
+        AND: [
+          orConditions.length > 0 ? { OR: orConditions } : {},
+          start_date || end_date
+            ? {
+                last_seen_at: {
+                  ...(start_date ? { gte: new Date(start_date) } : {}),
+                  ...(end_date ? { lte: new Date(end_date) } : {}),
+                },
+              }
+            : {},
+        ],
+      };
+  
+      const [customers, total] = await this.prisma.$transaction([
+        this.prisma.customer.findMany({
+          where: whereCondition,
+          skip,
+          take: page_size,
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            detail_info: true,
+            last_seen_at: true,
+            created_at: true,
+            updated_at: true,
+          },
+        }),
+        this.prisma.customer.count({ where: whereCondition }),
+      ]);
+  
+      return {
+        data: customers,
+        meta: {
+          total,
+          current_page,
+          page_size,
+          total_pages: Math.ceil(total / page_size),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`GET: error: ${error}`);
+      throw new InternalServerErrorException('Server error');
+    }
+  }  
+  
   async findOne(id: number): Promise<Customer> {
     const customer = await this.prisma.customer.findUnique({
       where: { id },

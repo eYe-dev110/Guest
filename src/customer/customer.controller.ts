@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Customer } from './entities/customer.entity';
 
 @ApiBearerAuth()
@@ -21,9 +21,20 @@ export class CustomerController {
 
   @Get()
   @ApiOperation({ summary: 'GET ALL CUSTOMERS', description: 'List all customers' })
+  @ApiQuery({ name: 'filter', required: false, description: 'Filter customers by search fields' })
+  @ApiQuery({ name: 'start_date', required: false, description: 'Filter customers by last_seen_at range' })
+  @ApiQuery({ name: 'end_date', required: false, description: 'Filter customers by last_seen_at range' })
+  @ApiQuery({ name: 'current_page', required: false, type: Number, description: 'Page number (1-based)' })
+  @ApiQuery({ name: 'page_size', required: false, type: Number, description: 'Number of items per page' })
   @ApiResponse({ status: 200, description: 'OK', type: [Customer] })
-  findAll() {
-    return this.customerService.findAll();
+  findAll(
+    @Query('filter') filter?: string,
+    @Query('start_date') start_date?: string,
+    @Query('end_date') end_date?: string,
+    @Query('current_page') current_page = 1,
+    @Query('page_size') page_size = 10,
+  ) {
+    return this.customerService.findAll(filter, start_date, end_date, current_page, page_size);
   }
 
   @Get(':id')
