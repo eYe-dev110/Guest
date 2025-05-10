@@ -25,6 +25,7 @@ export class UserController {
   @ApiResponse({status: 401, description: 'Unauthorized'})
   @ApiResponse({status: 500, description: 'Server error'})             //Swagger
   // @Auth(Role.admin)
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
@@ -42,6 +43,7 @@ export class UserController {
   @ApiResponse({status: 403, description: 'Forbidden' })
   @ApiResponse({status: 500, description: 'Server error'})             //Swagger
   // @Auth(Role.admin)
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   findAll(
     @Query('filter') filter?: string,
     @Query('current_page') current_page = 1,
@@ -74,6 +76,7 @@ export class UserController {
   @ApiResponse({status: 401, description: 'Unauthorized'})             
   @ApiResponse({status: 500, description: 'Server error'})             //Swagger
   // @Auth(Role.admin, Role.user)
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @GetUser() user: User) {
     return this.userService.update("id", id, updateUserDto, user);
   }
@@ -88,6 +91,7 @@ export class UserController {
   @ApiResponse({status: 401, description: 'Unauthorized'})             
   @ApiResponse({status: 500, description: 'Server error'})             //Swagger
   // @Auth(Role.admin, Role.user)
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   remove(@Param('id') id: string, @GetUser() user: User) {
     return this.userService.remove("id", id, user);
   }
