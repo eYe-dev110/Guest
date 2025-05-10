@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { ConstantService } from './constant.service';
 import { CreateConstantDto } from './dto/create-constant.dto';
 import { UpdateConstantDto } from './dto/update-constant.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Constant } from './entities/constant.entity';
+import { UserRoleGuard } from 'src/auth/guards/user-role/user-role.guard';
+import { JwtAuthGuard } from 'src/auth/strategies/jwt.authguard';
 
 @ApiBearerAuth()
 @ApiTags('Constants')
@@ -16,6 +18,7 @@ export class ConstantController {
   @ApiResponse({ status: 201, description: 'Created', type: Constant })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiResponse({ status: 409, description: 'Constant name already exists' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   create(@Body() createConstantDto: CreateConstantDto) {
     return this.constantService.create(createConstantDto);
   }
@@ -26,6 +29,7 @@ export class ConstantController {
   @ApiQuery({ name: 'current_page', required: false, type: Number, description: 'Page number (1-based)' })
   @ApiQuery({ name: 'page_size', required: false, type: Number, description: 'Number of items per page' })
   @ApiResponse({ status: 200, description: 'OK', type: [Constant] })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   findAll(
     @Query('filter') filter?: string,
     @Query('current_page') current_page = 1,
@@ -38,6 +42,7 @@ export class ConstantController {
   @ApiOperation({ summary: 'GET CONSTANT BY ID', description: 'Get constant details' })
   @ApiResponse({ status: 200, description: 'OK', type: Constant })
   @ApiResponse({ status: 404, description: 'Not Found' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   findOne(@Param('id') id: string) {
     return this.constantService.findOne(+id);
   }
@@ -46,6 +51,7 @@ export class ConstantController {
   @ApiOperation({ summary: 'GET CONSTANT BY NAME', description: 'Get constant by its name' })
   @ApiResponse({ status: 200, description: 'OK', type: Constant })
   @ApiResponse({ status: 404, description: 'Not Found' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   findByName(@Param('name') name: string) {
     return this.constantService.findByName(name);
   }
@@ -54,6 +60,7 @@ export class ConstantController {
   @ApiOperation({ summary: 'UPDATE CONSTANT', description: 'Update constant value' })
   @ApiResponse({ status: 200, description: 'Updated', type: Constant })
   @ApiResponse({ status: 404, description: 'Not Found' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   update(@Param('id') id: string, @Body() updateConstantDto: UpdateConstantDto) {
     return this.constantService.update(+id, updateConstantDto);
   }
@@ -62,6 +69,7 @@ export class ConstantController {
   @ApiOperation({ summary: 'DELETE CONSTANT', description: 'Remove a system constant' })
   @ApiResponse({ status: 200, description: 'Deleted', schema: { example: { message: 'Constant deleted' } } })
   @ApiResponse({ status: 404, description: 'Not Found' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   remove(@Param('id') id: string) {
     return this.constantService.remove(+id);
   }

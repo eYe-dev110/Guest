@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { CameraService } from './camera.service';
 import { CreateCameraDto } from './dto/create-camera.dto';
 import { UpdateCameraDto } from './dto/update-camera.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Camera } from './entities/camera.entity';
+import { JwtAuthGuard } from 'src/auth/strategies/jwt.authguard';
+import { UserRoleGuard } from 'src/auth/guards/user-role/user-role.guard';
 
 @ApiBearerAuth()
 @ApiTags('Cameras')
@@ -15,6 +17,7 @@ export class CameraController {
   @ApiOperation({ summary: 'CREATE CAMERA', description: 'Register a new camera' })
   @ApiResponse({ status: 201, description: 'Created', type: Camera })
   @ApiResponse({ status: 400, description: 'Bad Request' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   create(@Body() createCameraDto: CreateCameraDto) {
     return this.cameraService.create(createCameraDto);
   }
@@ -25,6 +28,7 @@ export class CameraController {
   @ApiQuery({ name: 'current_page', required: false, type: Number, description: 'Page number (1-based)' })
   @ApiQuery({ name: 'page_size', required: false, type: Number, description: 'Number of items per page' })
   @ApiResponse({ status: 200, description: 'OK', type: [Camera] })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   findAll(
       @Query('filter') filter?: string,
       @Query('current_page') current_page = 1,
@@ -37,6 +41,7 @@ export class CameraController {
   @ApiOperation({ summary: 'GET CAMERA BY ID', description: 'Get camera details' })
   @ApiResponse({ status: 200, description: 'OK', type: Camera })
   @ApiResponse({ status: 404, description: 'Not Found' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   findOne(@Param('id') id: string) {
     return this.cameraService.findOne(+id);
   }
@@ -45,6 +50,7 @@ export class CameraController {
   @ApiOperation({ summary: 'UPDATE CAMERA', description: 'Update camera details' })
   @ApiResponse({ status: 200, description: 'Updated', type: Camera })
   @ApiResponse({ status: 404, description: 'Not Found' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   update(@Param('id') id: string, @Body() updateCameraDto: UpdateCameraDto) {
     return this.cameraService.update(+id, updateCameraDto);
   }
@@ -53,6 +59,7 @@ export class CameraController {
   @ApiOperation({ summary: 'DELETE CAMERA', description: 'Remove a camera' })
   @ApiResponse({ status: 200, description: 'Deleted', schema: { example: { message: 'Camera deleted' } } })
   @ApiResponse({ status: 404, description: 'Not Found' })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   remove(@Param('id') id: string) {
     return this.cameraService.remove(+id);
   }
@@ -60,6 +67,7 @@ export class CameraController {
   @Get('floor/:floorNum')
   @ApiOperation({ summary: 'GET CAMERAS BY FLOOR', description: 'List cameras on a specific floor' })
   @ApiResponse({ status: 200, description: 'OK', type: [Camera] })
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   findByFloor(@Param('floorNum') floorNum: string) {
     return this.cameraService.findByFloor(+floorNum);
   }
