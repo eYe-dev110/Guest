@@ -4,6 +4,7 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { Customer } from './entities/customer.entity';
 import { CustomerRole, Prisma } from '@prisma/client';
+import { CustomerRoleCountDto, DailyRoleCountDto } from './dto/role-count-customer.dto';
 
 @Injectable()
 export class CustomerService {
@@ -22,6 +23,120 @@ export class CustomerService {
     } catch (error) {
       this.logger.error(`CREATE: ${error.message}`);
       throw new BadRequestException('Failed to create customer');
+    }
+  }
+
+  async getTodayCountByRole(): Promise<CustomerRoleCountDto[]> {
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+  
+      const result = await this.prisma.customer.groupBy({
+        by: ['role'],
+        where: {
+          last_seen_at: {
+            gte: todayStart,
+            lte: todayEnd
+          }
+        },
+        _count: {
+          id: true
+        },
+        orderBy: {
+          role: 'asc'
+        }
+      });
+  
+      return result.map(item => ({
+        role: item.role,
+        count: item._count.id
+      }));
+    } catch (error) {
+      this.logger.error(`GET_TODAY_COUNT_BY_ROLE: error: ${error}`);
+      throw new InternalServerErrorException('Server error');
+    }
+  }
+  
+  async getCurrentMonthCountByRole(): Promise<CustomerRoleCountDto[]> {
+    try {
+      // Get first and last day of current month
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      lastDayOfMonth.setHours(23, 59, 59, 999);
+  
+      const result = await this.prisma.customer.groupBy({
+        by: ['role'],
+        where: {
+          last_seen_at: {
+            gte: firstDayOfMonth,
+            lte: lastDayOfMonth
+          }
+        },
+        _count: {
+          id: true
+        },
+        orderBy: {
+          role: 'asc'
+        }
+      });
+  
+      return result.map(item => ({
+        role: item.role,
+        count: item._count.id
+      }));
+    } catch (error) {
+      this.logger.error(`GET_CURRENT_MONTH_COUNT_BY_ROLE: error: ${error}`);
+      throw new InternalServerErrorException('Server error');
+    }
+  }
+
+  async getDailyRoleCounts(start_date: Date, end_date: Date): Promise<DailyRoleCountDto[]> {
+    try {
+      // ... (same validation and date setup)
+  
+      const results: DailyRoleCountDto[] = [];
+      let currentDate = new Date(start_date);
+      let endDate = new Date(end_date)
+  
+      while (currentDate <= endDate) {
+        const nextDay = new Date(currentDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+  
+        const dayCounts = await this.prisma.customer.groupBy({
+          by: ['role'],
+          where: {
+            last_seen_at: {
+              gte: currentDate,
+              lt: nextDay
+            }
+          },
+          _count: {
+            id: true
+          },
+          orderBy: {
+            role: 'asc'
+          }
+        });
+  
+        results.push({
+          date: currentDate.toISOString().split('T')[0],
+          counts: dayCounts.map(item => ({
+            role: item.role,
+            count: item._count.id
+          }))
+        });
+  
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+  
+      return results;
+    } catch (error) {
+      // ... (same error handling)
     }
   }
 

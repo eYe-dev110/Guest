@@ -4,6 +4,7 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Customer } from './entities/customer.entity';
+import { CustomerRoleCountDto } from './dto/role-count-customer.dto';
 
 @ApiBearerAuth()
 @ApiTags('Customers')
@@ -35,6 +36,35 @@ export class CustomerController {
     @Query('page_size') page_size = 10,
   ) {
     return this.customerService.findAll(filter, start_date, end_date, current_page, page_size);
+  }
+
+  @Get('today-count-by-role')
+  @ApiOperation({ summary: 'GET TODAY\'S CUSTOMER COUNT BY ROLE', description: 'Get count of customers last seen today grouped by role' })
+  @ApiResponse({ status: 200, description: 'OK',  type: [CustomerRoleCountDto] })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  async getTodayCountByRole() {
+    return this.customerService.getTodayCountByRole();
+  }
+
+  @Get('month-count-by-role')
+  @ApiOperation({ summary: 'GET Month\'S CUSTOMER COUNT BY ROLE', description: 'Get count of customers last seen today grouped by role' })
+  @ApiResponse({ status: 200, description: 'OK',  type: [CustomerRoleCountDto] })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  async getMonthCountByRole() {
+    return this.customerService.getCurrentMonthCountByRole();
+  }
+
+  @Get('daily-count-by-role')
+  @ApiOperation({ summary: 'GET DAILY CUSTOMER COUNT BY ROLE', description: 'Get count of customers last seen today grouped by role' })
+  @ApiQuery({ name: 'start_date', required: false, description: 'Filter customers by last_seen_at range' })
+  @ApiQuery({ name: 'end_date', required: false, description: 'Filter customers by last_seen_at range' })
+  @ApiResponse({ status: 200, description: 'OK',  type: [CustomerRoleCountDto] })
+  @ApiResponse({ status: 500, description: 'Internal Server Error' })
+  async getDailyRoleCounts(
+    @Query('start_date') start_date: Date,
+    @Query('end_date') end_date: Date,
+  ) {
+    return this.customerService.getDailyRoleCounts(start_date, end_date);
   }
 
   @Get(':id')
