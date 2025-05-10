@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { ImageService } from './image.service';
 import { CreateImageDto } from './dto/create-image.dto';
 import { UpdateImageDto } from './dto/update-image.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Image } from './entities/image.entity';
 import { ImageType } from '@prisma/client';
 
@@ -23,9 +23,20 @@ export class ImageController {
 
   @Get()
   @ApiOperation({ summary: 'GET ALL IMAGES', description: 'List all image records' })
+  @ApiQuery({ name: 'filter', required: false, description: 'Filter images by search fields' })
+  @ApiQuery({ name: 'start_date', required: false, description: 'Filter images by created_at range' })
+  @ApiQuery({ name: 'end_date', required: false, description: 'Filter images by created_at range' })
+  @ApiQuery({ name: 'current_page', required: false, type: Number, description: 'Page number (1-based)' })
+  @ApiQuery({ name: 'page_size', required: false, type: Number, description: 'Number of items per page' })
   @ApiResponse({ status: 200, description: 'OK', type: [Image] })
-  findAll() {
-    return this.imageService.findAll();
+  findAll(
+    @Query('filter') filter?: string,
+    @Query('start_date') start_date?: string,
+    @Query('end_date') end_date?: string,
+    @Query('current_page') current_page = 1,
+    @Query('page_size') page_size = 10,
+  ) {
+    return this.imageService.findAll(filter, start_date, end_date, current_page, page_size);
   }
 
   @Get(':id')

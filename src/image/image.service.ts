@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateImageDto } from './dto/create-image.dto';
 import { UpdateImageDto } from './dto/update-image.dto';
 import { Image } from './entities/image.entity';
-import { ImageType } from '@prisma/client';
+import { ImageType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class ImageService {
@@ -69,8 +69,83 @@ export class ImageService {
     }
   }
 
-  async findAll(): Promise<Image[]> {
-    return this.prisma.image.findMany();
+  async findAll(
+    filter?: string,
+    start_date?: string,
+    end_date?: string,
+    current_page = 1,
+    page_size = 10,
+  ) {
+    try {
+      const skip = (current_page - 1) * page_size;
+  
+      const orConditions: Prisma.ImageWhereInput[] = [];
+  
+      if (filter) {
+        orConditions.push(
+          {
+            url: {
+              contains: filter,
+              mode: 'insensitive',
+            },
+          },
+        );
+
+        if ([ImageType.face.toString(), ImageType.camera.toString()].includes(filter.toLowerCase())) {
+          orConditions.push({
+            image_type: {
+              equals: filter.toLowerCase() as any, // Cast to enum if needed
+            },
+          });
+        }
+      }
+  
+      const whereCondition: Prisma.ImageWhereInput = {
+        AND: [
+          orConditions.length > 0 ? { OR: orConditions } : {},
+          start_date || end_date
+            ? {
+                created_at: {
+                  ...(start_date ? { gte: new Date(start_date) } : {}),
+                  ...(end_date ? { lte: new Date(end_date) } : {}),
+                },
+              }
+            : {},
+        ],
+      };
+  
+      const [images, total] = await this.prisma.$transaction([
+        this.prisma.image.findMany({
+          where: whereCondition,
+          skip,
+          take: page_size,
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            customer: true,
+            camera: true,
+            history: true,
+            image_type: true,
+            url: true,
+            created_at: true,
+          },
+        }),
+        this.prisma.image.count({ where: whereCondition }),
+      ]);
+  
+      return {
+        data: images,
+        meta: {
+          total,
+          current_page,
+          page_size,
+          total_pages: Math.ceil(total / page_size),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`GET: error: ${error}`);
+      throw new InternalServerErrorException('Server error');
+    }
   }
 
   async findOne(id: number): Promise<Image> {

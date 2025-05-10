@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { SessionService } from './session.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Session } from './entities/session.entity';
 
 @ApiBearerAuth()
@@ -22,9 +22,20 @@ export class SessionController {
 
   @Get()
   @ApiOperation({ summary: 'GET ALL SESSIONS', description: 'List all sessions' })
+  @ApiQuery({ name: 'filter', required: false, description: 'Filter sessions by search fields' })
+  @ApiQuery({ name: 'start_date', required: false, description: 'Filter sessions by created_at range' })
+  @ApiQuery({ name: 'end_date', required: false, description: 'Filter sessions by created_at range' })
+  @ApiQuery({ name: 'current_page', required: false, type: Number, description: 'Page number (1-based)' })
+  @ApiQuery({ name: 'page_size', required: false, type: Number, description: 'Number of items per page' })
   @ApiResponse({ status: 200, description: 'OK', type: [Session] })
-  findAll() {
-    return this.sessionService.findAll();
+  findAll(
+    @Query('filter') filter?: string,
+    @Query('start_date') start_date?: string,
+    @Query('end_date') end_date?: string,
+    @Query('current_page') current_page = 1,
+    @Query('page_size') page_size = 10,
+  ) {
+    return this.sessionService.findAll(filter, start_date, end_date, current_page, page_size);
   }
 
   @Get(':id')

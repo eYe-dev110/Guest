@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { CameraService } from './camera.service';
 import { CreateCameraDto } from './dto/create-camera.dto';
 import { UpdateCameraDto } from './dto/update-camera.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Camera } from './entities/camera.entity';
 
 @ApiBearerAuth()
@@ -21,9 +21,16 @@ export class CameraController {
 
   @Get()
   @ApiOperation({ summary: 'GET ALL CAMERAS', description: 'List all cameras' })
+  @ApiQuery({ name: 'filter', required: false, description: 'Filter cameras  by search fields' })
+  @ApiQuery({ name: 'current_page', required: false, type: Number, description: 'Page number (1-based)' })
+  @ApiQuery({ name: 'page_size', required: false, type: Number, description: 'Number of items per page' })
   @ApiResponse({ status: 200, description: 'OK', type: [Camera] })
-  findAll() {
-    return this.cameraService.findAll();
+  findAll(
+      @Query('filter') filter?: string,
+      @Query('current_page') current_page = 1,
+      @Query('page_size') page_size = 10,
+    ) {
+    return this.cameraService.findAll(filter, current_page, page_size);
   }
 
   @Get(':id')

@@ -12,10 +12,16 @@ import { HistoryModule } from './history/history.module';
 import { ImageModule } from './image/image.module';
 import { RoleModule } from './role/role.module';
 import { SessionModule } from './session/session.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import * as path from 'path';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    ServeStaticModule.forRoot({
+      rootPath: path.resolve(__dirname, '..', 'images'),  // Dynamically resolve the absolute path
+      serveRoot: '/images/',  // The URL where images will be served from
+    }),
     PrismaModule,
     AuthModule,
     UserModule,
@@ -25,7 +31,7 @@ import { SessionModule } from './session/session.module';
     HistoryModule,
     ImageModule,
     RoleModule,
-    SessionModule
+    SessionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

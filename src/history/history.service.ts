@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHistoryDto } from './dto/create-history.dto';
 import { UpdateHistoryDto } from './dto/update-history.dto';
 import { History } from './entities/history.entity';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class HistoryService {
@@ -38,8 +39,91 @@ export class HistoryService {
     }
   }
 
-  async findAll(): Promise<History[]> {
-    return this.prisma.history.findMany();
+  async findAll(
+    filter?: string,
+    start_date?: string,
+    end_date?: string,
+    current_page = 1,
+    page_size = 10,
+  ) {
+    try {
+      const skip = (current_page - 1) * page_size;
+  
+      const orConditions: Prisma.HistoryWhereInput[] = [];
+  
+      if (filter) {
+        orConditions.push(
+          {
+            customer: {
+              name: {
+                contains: filter,
+                mode: 'insensitive' as const,
+              },
+            },
+          },
+          {
+            camera: {
+              title: {
+                contains: filter,
+                mode: 'insensitive' as const,
+              },
+            },
+          },
+          {
+            camera: {
+              sub_title: {
+                contains: filter,
+                mode: 'insensitive' as const,
+              },
+            },
+          },
+        );
+      }
+  
+      const whereCondition: Prisma.HistoryWhereInput = {
+        AND: [
+          orConditions.length > 0 ? { OR: orConditions } : {},
+          start_date || end_date
+            ? {
+                seen_at: {
+                  ...(start_date ? { gte: new Date(start_date) } : {}),
+                  ...(end_date ? { lte: new Date(end_date) } : {}),
+                },
+              }
+            : {},
+        ],
+      };
+  
+      const [histories, total] = await this.prisma.$transaction([
+        this.prisma.history.findMany({
+          where: whereCondition,
+          skip,
+          take: page_size,
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            customer: true,
+            camera: true,
+            seen_at: true,
+            created_at: true,
+          },
+        }),
+        this.prisma.history.count({ where: whereCondition }),
+      ]);
+  
+      return {
+        data: histories,
+        meta: {
+          total,
+          current_page,
+          page_size,
+          total_pages: Math.ceil(total / page_size),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`GET: error: ${error}`);
+      throw new InternalServerErrorException('Server error');
+    }
   }
 
   async findOne(id: number): Promise<History> {

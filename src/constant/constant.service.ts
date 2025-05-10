@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateConstantDto } from './dto/create-constant.dto';
 import { UpdateConstantDto } from './dto/update-constant.dto';
 import { Constant } from './entities/constant.entity';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ConstantService {
@@ -32,8 +33,52 @@ export class ConstantService {
     }
   }
 
-  async findAll(): Promise<Constant[]> {
-    return this.prisma.constant.findMany();
+  async findAll(filter?: string, current_page = 1, page_size = 10){
+     try {
+      const skip = (current_page - 1) * page_size;
+      
+      // Create base where condition
+      const whereCondition: Prisma.ConstantWhereInput = {};
+      
+      // Add filtering if provided
+      if (filter) {
+        whereCondition.OR = [
+          // Text search
+          { name: { contains: filter, mode: 'insensitive' } },
+          { value: { contains: filter, mode: 'insensitive' } },
+        ];
+      }
+  
+      const [constants, total] = await this.prisma.$transaction([
+        this.prisma.constant.findMany({
+          where: whereCondition,
+          skip,
+          take: page_size,
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            value: true,
+            name: true,
+            created_at: true,
+            updated_at: true,
+          },
+        }),
+        this.prisma.constant.count({ where: whereCondition }),
+      ]);
+  
+      return {
+        data: constants,
+        meta: {
+          total,
+          current_page,
+          page_size,
+          total_pages: Math.ceil(total / page_size),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`GET: error: ${error}`);
+      throw new InternalServerErrorException('Failed to retrieve cameras');
+    }
   }
 
   async findOne(id: number): Promise<Constant> {

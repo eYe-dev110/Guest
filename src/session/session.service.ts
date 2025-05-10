@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { Session } from './entities/session.entity';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class SessionService {
@@ -29,8 +30,75 @@ export class SessionService {
     }
   }
 
-  async findAll(): Promise<Session[]> {
-    return this.prisma.session.findMany();
+  async findAll(
+    filter?: string,
+    start_date?: string,
+    end_date?: string,
+    current_page = 1,
+    page_size = 10,
+  ) {
+    try {
+      const skip = (current_page - 1) * page_size;
+  
+      const orConditions: Prisma.SessionWhereInput[] = [];
+  
+      if (filter) {
+        orConditions.push(
+          {
+            customer: {
+              name: {
+                contains: filter,
+                mode: 'insensitive' as const,
+              },
+            },
+          },
+        );
+      }
+  
+      const whereCondition: Prisma.SessionWhereInput = {
+        AND: [
+          orConditions.length > 0 ? { OR: orConditions } : {},
+          start_date || end_date
+            ? {
+                session_date: {
+                  ...(start_date ? { gte: new Date(start_date) } : {}),
+                  ...(end_date ? { lte: new Date(end_date) } : {}),
+                },
+              }
+            : {},
+        ],
+      };
+  
+      const [sessions, total] = await this.prisma.$transaction([
+        this.prisma.session.findMany({
+          where: whereCondition,
+          skip,
+          take: page_size,
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            customer: true,
+            day_session: true,
+            session_date: true,
+            created_at: true,
+          },
+        }),
+        this.prisma.session.count({ where: whereCondition }),
+      ]);
+  
+      return {
+        data: sessions,
+        meta: {
+          total,
+          current_page,
+          page_size,
+          total_pages: Math.ceil(total / page_size),
+        },
+      };
+    } catch (error) {
+      this.logger.error(`GET: error: ${error}`);
+      throw new InternalServerErrorException('Server error');
+    }
   }
 
   async findOne(id: number): Promise<Session> {

@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { Customer } from './entities/customer.entity';
-import { Prisma } from '@prisma/client';
+import { CustomerRole, Prisma } from '@prisma/client';
 
 @Injectable()
 export class CustomerService {
@@ -54,7 +54,7 @@ export class CustomerService {
         );
   
         // Optional: add role filtering only if filter is an exact match
-        if (['user', 'admin', 'guest'].includes(filter.toLowerCase())) {
+        if ([CustomerRole.client.toString(), CustomerRole.employeer.toString(), CustomerRole.user.toString()].includes(filter.toLowerCase())) {
           orConditions.push({
             role: {
               equals: filter.toLowerCase() as any, // Cast to enum if needed

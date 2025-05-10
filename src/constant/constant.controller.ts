@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ConstantService } from './constant.service';
 import { CreateConstantDto } from './dto/create-constant.dto';
 import { UpdateConstantDto } from './dto/update-constant.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Constant } from './entities/constant.entity';
 
 @ApiBearerAuth()
@@ -22,9 +22,16 @@ export class ConstantController {
 
   @Get()
   @ApiOperation({ summary: 'GET ALL CONSTANTS', description: 'List all system constants' })
+  @ApiQuery({ name: 'filter', required: false, description: 'Filter cameras  by search fields' })
+  @ApiQuery({ name: 'current_page', required: false, type: Number, description: 'Page number (1-based)' })
+  @ApiQuery({ name: 'page_size', required: false, type: Number, description: 'Number of items per page' })
   @ApiResponse({ status: 200, description: 'OK', type: [Constant] })
-  findAll() {
-    return this.constantService.findAll();
+  findAll(
+    @Query('filter') filter?: string,
+    @Query('current_page') current_page = 1,
+    @Query('page_size') page_size = 10,
+  ) {
+    return this.constantService.findAll(filter, current_page, page_size);
   }
 
   @Get(':id')
