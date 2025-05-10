@@ -24,6 +24,8 @@ export class CameraService {
 
   async findAll(filter?: string, current_page = 1, page_size = 10) {
     try {
+      current_page = Number(current_page)
+      page_size = Number(page_size)
       const skip = (current_page - 1) * page_size;
       
       // Create base where condition

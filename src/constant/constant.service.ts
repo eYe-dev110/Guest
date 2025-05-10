@@ -35,6 +35,8 @@ export class ConstantService {
 
   async findAll(filter?: string, current_page = 1, page_size = 10){
      try {
+      current_page = Number(current_page)
+      page_size = Number(page_size)
       const skip = (current_page - 1) * page_size;
       
       // Create base where condition
@@ -77,7 +79,7 @@ export class ConstantService {
       };
     } catch (error) {
       this.logger.error(`GET: error: ${error}`);
-      throw new InternalServerErrorException('Failed to retrieve cameras');
+      throw new InternalServerErrorException('Failed to retrieve constants');
     }
   }
 
