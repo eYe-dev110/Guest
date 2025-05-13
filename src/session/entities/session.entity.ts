@@ -24,7 +24,7 @@ export class Session {
     required: true,
   })
   @IsString()
-  day_session: string;
+  day_session: number[];
 
   @ApiProperty({
     description: 'Session date',

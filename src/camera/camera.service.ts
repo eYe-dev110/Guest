@@ -122,8 +122,16 @@ export class CameraService {
   }
 
   async findByFloor(floorNum: number): Promise<Camera[]> {
-    return this.prisma.camera.findMany({
+    return await this.prisma.camera.findMany({
       where: { floor_num: floorNum },
     });
+  }
+
+  async findByFloors(floorNum: number, subFloorNum: number): Promise<Camera> {
+    const cameras =  await this.prisma.camera.findMany({
+      where: { floor_num: floorNum, floor_sub_num: subFloorNum },
+    });
+
+    return cameras[0]
   }
 }

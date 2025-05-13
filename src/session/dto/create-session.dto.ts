@@ -18,7 +18,7 @@ export class CreateSessionDto {
   })
   @IsString()
   @IsNotEmpty()
-  day_session: string;
+  day_session: number[];
 
   @ApiProperty({
     description: 'Session date',

@@ -6,12 +6,15 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@ne
 import { Session } from './entities/session.entity';
 import { JwtAuthGuard } from 'src/auth/strategies/jwt.authguard';
 import { UserRoleGuard } from 'src/auth/guards/user-role/user-role.guard';
+import { BatchFaceDto } from './dto/create-embedding.dto';
 
 @ApiBearerAuth()
 @ApiTags('Sessions')
 @Controller('sessions')
 export class SessionController {
-  constructor(private readonly sessionService: SessionService) {}
+  constructor(
+    private readonly sessionService: SessionService
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'CREATE SESSION', description: 'Create a new session record' })
@@ -75,5 +78,13 @@ export class SessionController {
   @UseGuards(JwtAuthGuard, UserRoleGuard)
   findByCustomer(@Param('customerId') customerId: string) {
     return this.sessionService.findByCustomer(+customerId);
+  }
+
+  @Post('detect')
+  @ApiOperation({ summary: 'FACE RECOGNITION BATCH', description: 'Receive batch of face embeddings and image URLs' })
+  @ApiResponse({ status: 200, description: 'Batch processed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  batchRecognition(@Body() batchFaceDto: BatchFaceDto) {
+    return this.sessionService.processBatch(batchFaceDto);
   }
 }

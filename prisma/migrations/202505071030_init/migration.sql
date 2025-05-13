@@ -34,7 +34,7 @@ CREATE TABLE "tb_customer" (
 CREATE TABLE "tb_session" (
     "id"   SERIAL PRIMARY KEY,
     "customer_id" INT NOT NULL,
-    "day_session" TEXT NOT NULL,
+    "day_session" BYTEA NOT NULL,
     "session_date" TIMESTAMP(3) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -42,7 +42,6 @@ CREATE TABLE "tb_session" (
 );
 
 CREATE INDEX "tb_session_customer_id_idx" ON "tb_session"("customer_id");
-CREATE INDEX "tb_session_day_session_idx" ON "tb_session"("day_session");
 CREATE INDEX "tb_session_session_date_idx" ON "tb_session"("session_date");
 
 CREATE TABLE "tb_camera" (

@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { swaggerOptions, swaggerTitle, swaggerDescription } from './common';
+import * as bodyParser from 'body-parser';
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,6 +16,9 @@ export async function bootstrap() {
       forbidNonWhitelisted: true,
     })
   );
+
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
   // Swagger Configuration --------------------------------
   // swaggerOptions, swaggerTitle, swaggerDescription variables are customized and defined in common/swagger/swagger.config.ts

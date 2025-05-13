@@ -59,7 +59,9 @@ docker compose up -d
 ```
 ### 6. Create DB tables
 ```bash
-npx prisma migrate dev --name "Initial Schema"
+rm -rf node_modules/.prisma
+npx prisma generate
+npx prisma migrate reset
 ```
 ### 7. Fill DB tables
 Two users will be created. The first one as admin `p1@correo.com` and the second one as user `p2@correo.com`, same password for both `123456`.
